@@ -19,11 +19,11 @@
       </div>
     </div>
   </nav>
-
-  <!-- Contenedor principal -->
+  
+  <!-- Contenido principal -->
   <div class="container mt-5">
     <h2 class="mb-4 text-center">Mi Perfil</h2>
-
+    
     <!-- Información del Usuario -->
     <div class="mb-4">
       <h4>Información del Usuario</h4>
@@ -33,7 +33,7 @@
       <p><strong>NIVEL:</strong> {{ level }}</p>
       <p><strong>PUNTOS TOTALES:</strong> {{ formatted_points }}</p>
     </div>
-
+    
     <!-- Tabla de Records -->
     <div class="mb-4">
       <h4>Mis Records</h4>
@@ -54,6 +54,7 @@
         <tbody>
           {% for score in scores %}
           <tr>
+            <!-- Se usa el filtro "basename" para extraer el nombre de la canción -->
             <td>{{ score.song_dir | basename }}</td>
             <td>{{ score.difficulty }}</td>
             <td>{{ score.steps_type }}</td>
@@ -88,8 +89,8 @@
       <p>No se encontraron records.</p>
       {% endif %}
     </div>
-
-    <!-- Configuración de StepMania -->
+    
+    <!-- Sección de Configuración -->
     <div>
       <h4>Configuración de StepMania</h4>
       <p><strong>Ruta de LocalProfiles:</strong> {{ stepmania_path if stepmania_path else "No configurada" }}</p>
