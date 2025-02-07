@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Mi Perfil - StepMania Stats</title>
+  <title>Mi Perfil - StepLeague</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
   <!-- Barra de navegación -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
-      <a class="navbar-brand" href="#">StepMania Stats</a>
+      <a class="navbar-brand" href="#">StepLeague</a>
       <div class="collapse navbar-collapse">
         <ul class="navbar-nav ms-auto">
           <li class="nav-item"><a class="nav-link" href="/ranking">Ranking Global</a></li>
@@ -55,14 +55,34 @@
         <tbody>
           {% for score in scores %}
           <tr>
-            <!-- Se usa el filtro 'basename' para extraer el nombre de la canción -->
-            <td>{{ score.song_dir | basename }}</td>
+            <!-- Extraer el nombre de la canción: quitamos barras finales y dividimos por '/' -->
+            <td>{{ score.song_dir.rstrip('/') .split('/')[-1] }}</td>
             <td>{{ score.difficulty }}</td>
             <td>{{ score.steps_type }}</td>
             <td>{{ score.score }}</td>
             <td>{{ score.max_combo }}</td>
-            <td>{{ score.percent_dp }}</td>
-            <td>{{ score.grade }}</td>
+            <!-- Mostrar el PercentDP como porcentaje -->
+            <td>{{ (score.percent_dp * 100) | round(1) }}%</td>
+            <!-- Convertir el Tier a calificación en letras con condicionales -->
+            <td>
+              {% if score.grade == "Tier17" %}
+                F
+              {% elif score.grade == "Tier15" %}
+                D
+              {% elif score.grade == "Tier12" %}
+                C
+              {% elif score.grade == "Tier10" %}
+                B
+              {% elif score.grade == "Tier06" %}
+                A
+              {% elif score.grade == "Tier03" %}
+                A+
+              {% elif score.grade == "Tier01" %}
+                S
+              {% else %}
+                {{ score.grade }}
+              {% endif %}
+            </td>
             <td>{{ score.date_time }}</td>
           </tr>
           {% endfor %}
