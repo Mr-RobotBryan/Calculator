@@ -28,7 +28,8 @@
     <div class="mb-4">
       <h4>Información del Usuario</h4>
       <p><strong>NOMBRE DE USUARIO:</strong> {{ username }}</p>
-      <p><strong>LIGA:</strong> {{ stepmania_profile if stepmania_profile else "No configurado" }}</p>
+      <p><strong>PERFIL STEPMANIA:</strong> {{ stepmania_profile }}</p>
+      <p><strong>LIGA:</strong> {{ league }}</p>
       <p><strong>NIVEL:</strong> {{ level }}</p>
       <p><strong>PUNTOS TOTALES:</strong> {{ formatted_points }}</p>
     </div>
@@ -88,7 +89,7 @@
       {% endif %}
     </div>
 
-    <!-- Sección de Configuración -->
+    <!-- Configuración de StepMania -->
     <div>
       <h4>Configuración de StepMania</h4>
       <p><strong>Ruta de LocalProfiles:</strong> {{ stepmania_path if stepmania_path else "No configurada" }}</p>
