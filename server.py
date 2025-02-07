@@ -101,7 +101,7 @@ def setup_database():
 setup_database()
 
 # ---------------------------
-# Endpoint para Actualizar el DisplayName (Perfil de StepMania)
+# Endpoint para Actualizar el DisplayName (solo decorativo)
 # ---------------------------
 @app.route('/api/update_displayname', methods=['POST'])
 def update_displayname():
@@ -112,7 +112,7 @@ def update_displayname():
         return jsonify({"status": "error", "message": "API key and displayname required"}), 400
     conn = db_connection()
     cursor = conn.cursor()
-    # Actualizamos el campo stepmania_profile con el nuevo DisplayName
+    # Actualizamos el campo stepmania_profile (que es usado solo para mostrar, sin afectar los scores)
     cursor.execute("UPDATE users SET stepmania_profile = ? WHERE api_key = ?", (new_displayname, api_key))
     conn.commit()
     conn.close()
@@ -345,8 +345,16 @@ def profile():
     cursor.execute("SELECT stepmania_path, stepmania_profile FROM users WHERE username = ?", (session['username'],))
     user_config = cursor.fetchone()
     stepmania_path = user_config["stepmania_path"] if user_config and user_config["stepmania_path"] else ""
-    # Usamos el valor de stepmania_profile almacenado (que se actualiza si el monitor detecta cambios en Editable.ini)
+    # Obtenemos el valor almacenado (funcional) para filtrar los scores
     profile_value = user_config["stepmania_profile"] if user_config and user_config["stepmania_profile"] else "No configurado"
+    # Intentamos leer el DisplayName del Editable.ini para mostrarlo de forma decorativa
+    editable_path = os.path.join(stepmania_path, profile_value, "Editable.ini")
+    displayname = profile_value  # Valor por defecto
+    if os.path.exists(editable_path):
+        config = configparser.ConfigParser()
+        config.read(editable_path)
+        if "Editable" in config and "DisplayName" in config["Editable"]:
+            displayname = config["Editable"]["DisplayName"]
     cursor.execute("SELECT SUM(score) AS total_points, AVG(percent_dp) AS avg_percent_dp FROM scores WHERE profile_id = ?", (profile_value,))
     row = cursor.fetchone()
     total_points = row["total_points"] if row["total_points"] is not None else 0
@@ -359,7 +367,7 @@ def profile():
     conn.close()
     return render_template('profile.html',
                            username=session['username'],
-                           stepmania_profile=profile_value,
+                           displayname=displayname,
                            league=league,
                            level=level,
                            formatted_points=formatted_points,
