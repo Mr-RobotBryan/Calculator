@@ -8,15 +8,12 @@ app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta'  # Cambia esto por una clave segura
 db_name = "stepmania_stats.db"
 
-# Filtro personalizado: extrae el nombre base de una ruta, normalizando (para mostrar el nombre de la canción)
-@app.template_filter('basename')
-def basename_filter(path):
-    return os.path.basename(os.path.normpath(path))
-
-# --- Funciones de Gamificación ---
+# ---------------------------
+# Funciones de Utilidad para Gamificación
+# ---------------------------
 def calculate_league(percent_dp):
     """
-    Asigna la liga (nombre de piedra preciosa) según el promedio de PercentDP (0 a 1).
+    Asigna la liga (nombre de piedra preciosa) según el promedio de PercentDP (valor entre 0 y 1).
     """
     if percent_dp < 0.70:
         return "Cuarzo"
@@ -35,15 +32,16 @@ def calculate_league(percent_dp):
 
 def calculate_level(total_points):
     """
+    Calcula el nivel basado en el total acumulado de puntos.
     Cada 10,000,000 de puntos se sube un nivel.
     """
     return total_points // 10_000_000 + 1
 
 def format_points(points):
     """
-    Formatea los puntos:
-      - En millones (M) si >= 1,000,000.
-      - En miles (K) si >= 1,000.
+    Formatea los puntos para mostrarlos:
+      - En millones (M) si es >= 1,000,000.
+      - En miles (K) si es >= 1,000.
       - Sino, en número completo.
     """
     if points >= 1_000_000:
@@ -53,7 +51,9 @@ def format_points(points):
     else:
         return str(points)
 
-# --- Funciones de Base de Datos ---
+# ---------------------------
+# Funciones de Base de Datos
+# ---------------------------
 def db_connection():
     conn = sqlite3.connect(db_name)
     conn.row_factory = sqlite3.Row
@@ -62,6 +62,7 @@ def db_connection():
 def setup_database():
     conn = db_connection()
     cursor = conn.cursor()
+    # Tabla de usuarios: se almacena el username, password, api_key, stepmania_path y stepmania_profile
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -72,6 +73,7 @@ def setup_database():
         stepmania_profile TEXT
     )
     """)
+    # Tabla de scores: se registran las estadísticas de cada partida
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS scores (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -93,9 +95,27 @@ def setup_database():
 
 setup_database()
 
-# --- Endpoints de API ---
+# ---------------------------
+# Endpoint para Actualizar el DisplayName
+# ---------------------------
+@app.route('/api/update_displayname', methods=['POST'])
+def update_displayname():
+    data = request.get_json()
+    api_key = data.get("api_key")
+    new_displayname = data.get("displayname")
+    if not api_key or not new_displayname:
+        return jsonify({"status": "error", "message": "API key and displayname required"}), 400
+    conn = db_connection()
+    cursor = conn.cursor()
+    # Actualizamos el campo stepmania_profile con el nuevo DisplayName
+    cursor.execute("UPDATE users SET stepmania_profile = ? WHERE api_key = ?", (new_displayname, api_key))
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "success", "message": "DisplayName updated successfully"}), 200
 
-# Endpoint de autenticación
+# ---------------------------
+# Endpoint de Autenticación
+# ---------------------------
 @app.route('/api/auth', methods=['POST'])
 def api_auth():
     data = request.get_json()
@@ -113,7 +133,9 @@ def api_auth():
     else:
         return jsonify({"status": "error", "message": "Incorrect credentials"}), 401
 
-# Endpoint para registrar estadísticas (submit_stats)
+# ---------------------------
+# Endpoint para Enviar Estadísticas (Submit Stats)
+# ---------------------------
 @app.route('/api/submit_stats', methods=['POST'])
 def api_submit_stats():
     try:
@@ -130,7 +152,7 @@ def api_submit_stats():
         if not user:
             conn.close()
             return jsonify({"status": "error", "message": "Unauthorized user"}), 401
-        username, profile_id = user["username"], user["stepmania_profile"]
+        profile_id = user["stepmania_profile"]
         required_fields = ["song_dir", "difficulty", "steps_type", "grade", "score", "percent_dp", "max_combo", "date_time", "player_guid", "player_name"]
         missing = [f for f in required_fields if f not in data or not data[f]]
         if missing:
@@ -162,9 +184,11 @@ def api_submit_stats():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-# Endpoint para obtener configuración
+# ---------------------------
+# Endpoint para Obtener Configuración
+# ---------------------------
 @app.route('/api/get_config', methods=['POST'])
-def get_config():
+def get_config_endpoint():
     data = request.get_json()
     api_key = data.get("api_key")
     if not api_key:
@@ -179,7 +203,9 @@ def get_config():
     else:
         return jsonify({"status": "error", "message": "Configuration not found"}), 404
 
-# Endpoint para obtener ranking info
+# ---------------------------
+# Endpoint para Obtener Información de Ranking (Liga, Nivel, Puntos Totales)
+# ---------------------------
 @app.route('/api/get_ranking_info', methods=['POST'])
 def get_ranking_info():
     data = request.get_json()
@@ -211,23 +237,9 @@ def get_ranking_info():
         "formatted_points": formatted_points
     }), 200
 
-# Endpoint para actualizar DisplayName a partir de Editable.ini
-@app.route('/api/update_displayname', methods=['POST'])
-def update_displayname():
-    data = request.get_json()
-    api_key = data.get("api_key")
-    new_displayname = data.get("displayname")
-    if not api_key or not new_displayname:
-        return jsonify({"status": "error", "message": "API key and displayname required"}), 400
-    conn = db_connection()
-    cursor = conn.cursor()
-    # Actualiza el campo stepmania_profile con el nuevo DisplayName
-    cursor.execute("UPDATE users SET stepmania_profile = ? WHERE api_key = ?", (new_displayname, api_key))
-    conn.commit()
-    conn.close()
-    return jsonify({"status": "success", "message": "DisplayName updated successfully"}), 200
-
-# --- Endpoints Web (login, register, profile, etc.) ---
+# ---------------------------
+# Endpoints Web (Registro, Login, Configuración y Perfil)
+# ---------------------------
 @app.route('/')
 def home():
     return redirect(url_for('login'))
@@ -328,22 +340,21 @@ def profile():
     cursor.execute("SELECT stepmania_path, stepmania_profile FROM users WHERE username = ?", (session['username'],))
     user_config = cursor.fetchone()
     stepmania_path = user_config["stepmania_path"] if user_config and user_config["stepmania_path"] else ""
-    profile_value = user_config["stepmania_profile"] if user_config and user_config["stepmania_profile"] else ""
-    # Usamos directamente el valor almacenado, que es el identificador (por ejemplo, "00000000")
-    sm_profile = profile_value
-    cursor.execute("SELECT SUM(score) AS total_points, AVG(percent_dp) AS avg_percent_dp FROM scores WHERE profile_id = ?", (sm_profile,))
+    # Usamos directamente el valor almacenado en la base de datos para el perfil de StepMania.
+    profile_value = user_config["stepmania_profile"] if user_config and user_config["stepmania_profile"] else "No configurado"
+    cursor.execute("SELECT SUM(score) AS total_points, AVG(percent_dp) AS avg_percent_dp FROM scores WHERE profile_id = ?", (profile_value,))
     row = cursor.fetchone()
     total_points = row["total_points"] if row["total_points"] is not None else 0
     avg_percent_dp = row["avg_percent_dp"] if row["avg_percent_dp"] is not None else 0
     league = calculate_league(avg_percent_dp)
     level = calculate_level(total_points)
     formatted_points = format_points(total_points)
-    cursor.execute("SELECT * FROM scores WHERE profile_id = ?", (sm_profile,))
+    cursor.execute("SELECT * FROM scores WHERE profile_id = ?", (profile_value,))
     scores = cursor.fetchall()
     conn.close()
     return render_template('profile.html',
                            username=session['username'],
-                           stepmania_profile=sm_profile,
+                           stepmania_profile=profile_value,
                            league=league,
                            level=level,
                            formatted_points=formatted_points,
