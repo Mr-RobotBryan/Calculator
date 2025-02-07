@@ -13,6 +13,49 @@ db_name = "stepmania_stats.db"
 def basename_filter(path):
     return os.path.basename(os.path.normpath(path))
 
+# ---------------------------
+# Funciones de Utilidad
+# ---------------------------
+def calculate_league(percent_dp):
+    """
+    Calcula la liga (nombre de piedra preciosa) basándose en el promedio de PercentDP (valor entre 0 y 1).
+    """
+    if percent_dp < 0.70:
+        return "Cuarzo"
+    elif percent_dp < 0.75:
+        return "Amatista"
+    elif percent_dp < 0.80:
+        return "Topacio"
+    elif percent_dp < 0.85:
+        return "Esmeralda"
+    elif percent_dp < 0.90:
+        return "Rubí"
+    elif percent_dp < 0.95:
+        return "Zafiro"
+    else:
+        return "Diamante"
+
+def calculate_level(total_points):
+    """
+    Calcula el nivel basándose en el total acumulado de puntos.
+    Cada 10,000,000 de puntos se sube un nivel.
+    """
+    return total_points // 10_000_000 + 1
+
+def format_points(points):
+    """
+    Formatea los puntos para mostrarlos en notación abreviada:
+      - En millones (M) si es >= 1,000,000.
+      - En miles (K) si es >= 1,000.
+      - Sino, se muestra el número completo.
+    """
+    if points >= 1_000_000:
+        return f"{points/1_000_000:.2f}M"
+    elif points >= 1_000:
+        return f"{points/1_000:.1f}K"
+    else:
+        return str(points)
+
 def db_connection():
     conn = sqlite3.connect(db_name)
     conn.row_factory = sqlite3.Row  # Permite acceder a las columnas por nombre
@@ -56,65 +99,22 @@ def setup_database():
 
 setup_database()
 
-# Función auxiliar para obtener el nombre real del perfil desde Editable.ini
-def get_stepmania_profile_name(stepmania_path, profile_id):
-    """
-    Lee el archivo Editable.ini ubicado en el directorio del perfil y extrae el nombre real
-    del perfil usando la clave 'DisplayName' de la sección [Editable].
-    """
-    profile_dir = os.path.join(stepmania_path, profile_id)
-    editable_path = os.path.join(profile_dir, "Editable.ini")
-    if os.path.exists(editable_path):
-        config = configparser.ConfigParser()
-        config.read(editable_path)
-        if "Editable" in config and "DisplayName" in config["Editable"]:
-            return config["Editable"]["DisplayName"]
-    return profile_id  # Retorna el ID si no se encuentra el nombre
-
-# ------------------------------------------------
-# Endpoint para obtener la configuración del usuario
-# ------------------------------------------------
-@app.route('/api/get_config', methods=['POST'])
-def get_config():
-    data = request.get_json()
-    api_key = data.get("api_key")
-    if not api_key:
-        return jsonify({"status": "error", "message": "API key requerida"}), 400
-
-    conn = db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT stepmania_path, stepmania_profile FROM users WHERE api_key = ?", (api_key,))
-    config_row = cursor.fetchone()
-    conn.close()
-
-    if config_row:
-        return jsonify({
-            "status": "success",
-            "stepmania_path": config_row["stepmania_path"],
-            "stepmania_profile": config_row["stepmania_profile"]
-        }), 200
-    else:
-        return jsonify({"status": "error", "message": "Configuración no encontrada"}), 404
-
-# ------------------------------------------------
-# Endpoints de API (para comunicación con el monitor)
-# ------------------------------------------------
+# ---------------------------
+# Endpoints de API
+# ---------------------------
 
 @app.route('/api/auth', methods=['POST'])
 def api_auth():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
-
     if not username or not password:
         return jsonify({"status": "error", "message": "Faltan credenciales"}), 400
-
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT api_key FROM users WHERE username = ? AND password = ?", (username, password))
     result = cursor.fetchone()
     conn.close()
-
     if result:
         return jsonify({"status": "success", "api_key": result["api_key"]}), 200
     else:
@@ -126,23 +126,18 @@ def api_submit_stats():
         data = request.get_json()
         if not data:
             return jsonify({"status": "error", "message": "No se envió un cuerpo JSON válido"}), 400
-
         api_key = data.get('api_key')
         if not api_key:
             return jsonify({"status": "error", "message": "API Key no proporcionada"}), 400
-
         conn = db_connection()
         cursor = conn.cursor()
-
-        # Verificar la validez de la API key
+        # Verificar la API key
         cursor.execute("SELECT username, stepmania_profile FROM users WHERE api_key = ?", (api_key,))
         user = cursor.fetchone()
         if not user:
             conn.close()
             return jsonify({"status": "error", "message": "Usuario no autorizado"}), 401
-
         username, profile_id = user["username"], user["stepmania_profile"]
-
         # Validar campos requeridos
         required_fields = [
             'song_dir', 'difficulty', 'steps_type', 'grade', 'score',
@@ -155,8 +150,7 @@ def api_submit_stats():
                 "status": "error",
                 "message": f"Faltan datos para registrar el puntaje: {', '.join(missing_fields)}"
             }), 400
-
-        # Extraer y convertir los datos
+        # Extraer datos
         song_dir = data['song_dir']
         difficulty = data['difficulty']
         steps_type = data['steps_type']
@@ -167,8 +161,7 @@ def api_submit_stats():
         date_time = data['date_time']
         player_guid = data['player_guid']
         player_name = data['player_name']
-
-        # Evitar duplicados: verificar si ya existe un puntaje igual o mayor
+        # Evitar duplicados (simplificado)
         cursor.execute("""
         SELECT 1 FROM scores 
         WHERE song_dir = ? AND difficulty = ? AND player_guid = ? AND score >= ?
@@ -179,8 +172,6 @@ def api_submit_stats():
                 "status": "error",
                 "message": "El puntaje ya existe en la base de datos. No se registrará duplicado."
             }), 400
-
-        # Insertar el nuevo puntaje
         cursor.execute("""
         INSERT INTO scores (
             song_dir, difficulty, steps_type, grade, score, 
@@ -190,32 +181,81 @@ def api_submit_stats():
         conn.commit()
         conn.close()
         return jsonify({"status": "success", "message": "Puntaje registrado exitosamente"}), 200
-
     except Exception as e:
         return jsonify({"status": "error", "message": f"Error inesperado: {str(e)}"}), 500
 
-# ------------------------------------------------
-# Endpoints para la Interfaz Web
-# ------------------------------------------------
+@app.route('/api/get_config', methods=['POST'])
+def get_config():
+    data = request.get_json()
+    api_key = data.get("api_key")
+    if not api_key:
+        return jsonify({"status": "error", "message": "API key requerida"}), 400
+    conn = db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT stepmania_path, stepmania_profile FROM users WHERE api_key = ?", (api_key,))
+    config_row = cursor.fetchone()
+    conn.close()
+    if config_row:
+        return jsonify({
+            "status": "success",
+            "stepmania_path": config_row["stepmania_path"],
+            "stepmania_profile": config_row["stepmania_profile"]
+        }), 200
+    else:
+        return jsonify({"status": "error", "message": "Configuración no encontrada"}), 404
 
+@app.route('/api/get_ranking_info', methods=['POST'])
+def get_ranking_info():
+    data = request.get_json()
+    api_key = data.get("api_key")
+    if not api_key:
+        return jsonify({"status": "error", "message": "API key requerida"}), 400
+    conn = db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT stepmania_profile FROM users WHERE api_key = ?", (api_key,))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        return jsonify({"status": "error", "message": "Usuario no encontrado"}), 404
+    profile_id = user["stepmania_profile"]
+    cursor.execute("SELECT SUM(score) AS total_points, AVG(percent_dp) AS avg_percent_dp FROM scores WHERE profile_id = ?", (profile_id,))
+    row = cursor.fetchone()
+    total_points = row["total_points"] if row["total_points"] is not None else 0
+    avg_percent_dp = row["avg_percent_dp"] if row["avg_percent_dp"] is not None else 0
+    conn.close()
+    league = calculate_league(avg_percent_dp)
+    level = calculate_level(total_points)
+    formatted_points = format_points(total_points)
+    return jsonify({
+        "status": "success",
+        "total_points": total_points,
+        "avg_percent_dp": avg_percent_dp,
+        "league": league,
+        "level": level,
+        "formatted_points": formatted_points
+    }), 200
+
+# ---------------------------
+# Endpoints para la Interfaz Web
+# (Simplificados; ajusta según tu implementación)
+# ---------------------------
 @app.route('/')
 def home():
     return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    # Código de registro (simplificado)
     if request.method == 'POST':
         username = request.form['username'].strip()
         password = request.form['password'].strip()
         if not username or not password:
             return "Todos los campos son obligatorios", 400
-
-        api_key = secrets.token_hex(16)  # Genera una API key única
+        api_key = secrets.token_hex(16)
         try:
             conn = db_connection()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO users (username, password, api_key) VALUES (?, ?, ?)",
-                           (username, password, api_key))
+            cursor.execute("INSERT INTO users (username, password, api_key) VALUES (?, ?, ?)", (username, password, api_key))
             conn.commit()
             conn.close()
             return redirect(url_for('login'))
@@ -223,7 +263,6 @@ def register():
             return "El nombre de usuario ya existe. Por favor elige otro.", 400
         except Exception as e:
             return f"Error al registrar el usuario: {e}", 500
-
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -242,7 +281,6 @@ def login():
             return redirect(url_for('ranking'))
         else:
             return "Credenciales incorrectas", 400
-
     return render_template('login.html')
 
 @app.route('/logout')
@@ -304,27 +342,29 @@ def profile():
         return redirect(url_for('login'))
     conn = db_connection()
     cursor = conn.cursor()
-    # Obtener configuración del usuario
     cursor.execute("SELECT stepmania_path, stepmania_profile FROM users WHERE username = ?", (session['username'],))
     user_config = cursor.fetchone()
     stepmania_path = user_config["stepmania_path"] if user_config and user_config["stepmania_path"] else ""
     profile_id = user_config["stepmania_profile"] if user_config and user_config["stepmania_profile"] else ""
-    # Obtener el nombre real del perfil desde Editable.ini
-    stepmania_profile_name = get_stepmania_profile_name(stepmania_path, profile_id) if stepmania_path and profile_id else "No configurado"
-    # Obtener los records del usuario filtrados por profile_id
+    # Obtener ranking info para mostrar en el perfil
+    cursor.execute("SELECT SUM(score) AS total_points, AVG(percent_dp) AS avg_percent_dp FROM scores WHERE profile_id = ?", (profile_id,))
+    row = cursor.fetchone()
+    total_points = row["total_points"] if row["total_points"] is not None else 0
+    avg_percent_dp = row["avg_percent_dp"] if row["avg_percent_dp"] is not None else 0
+    league = calculate_league(avg_percent_dp)
+    level = calculate_level(total_points)
+    formatted_points = format_points(total_points)
     cursor.execute("SELECT * FROM scores WHERE profile_id = ?", (profile_id,))
     scores = cursor.fetchall()
-    # Calcular el total de puntos del usuario
-    cursor.execute("SELECT SUM(score) AS total_points FROM scores WHERE profile_id = ?", (profile_id,))
-    total_points_row = cursor.fetchone()
-    total_points = total_points_row["total_points"] if total_points_row["total_points"] is not None else 0
     conn.close()
     return render_template('profile.html',
                            username=session['username'],
-                           stepmania_profile=stepmania_profile_name,
-                           total_points=total_points,
+                           stepmania_profile=league,  # Mostrar liga en vez de raw perfil
+                           level=level,
+                           formatted_points=formatted_points,
                            scores=scores,
                            stepmania_path=stepmania_path)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=True, host="0.0.0.0", port=port)
