@@ -28,7 +28,7 @@
     <div class="mb-4">
       <h4>Información del Usuario</h4>
       <p><strong>NOMBRE DE USUARIO:</strong> {{ username }}</p>
-      <p><strong>LIGA:</strong> {{ stepmania_profile }}</p>
+      <p><strong>LIGA:</strong> {{ stepmania_profile if stepmania_profile else "No configurado" }}</p>
       <p><strong>NIVEL:</strong> {{ level }}</p>
       <p><strong>PUNTOS TOTALES:</strong> {{ formatted_points }}</p>
     </div>
@@ -59,7 +59,25 @@
             <td>{{ score.score }}</td>
             <td>{{ score.max_combo }}</td>
             <td>{{ (score.percent_dp * 100) | round(1) }}%</td>
-            <td>{{ score.grade }}</td>
+            <td>
+              {% if score.grade == "Tier17" %}
+                F
+              {% elif score.grade == "Tier15" %}
+                D
+              {% elif score.grade == "Tier12" %}
+                C
+              {% elif score.grade == "Tier10" %}
+                B
+              {% elif score.grade == "Tier06" %}
+                A
+              {% elif score.grade == "Tier03" %}
+                A+
+              {% elif score.grade == "Tier01" %}
+                S
+              {% else %}
+                {{ score.grade }}
+              {% endif %}
+            </td>
             <td>{{ score.date_time }}</td>
           </tr>
           {% endfor %}
@@ -70,13 +88,13 @@
       {% endif %}
     </div>
 
-    <!-- Configuración de StepMania -->
+    <!-- Sección de Configuración -->
     <div>
       <h4>Configuración de StepMania</h4>
       <p><strong>Ruta de LocalProfiles:</strong> {{ stepmania_path if stepmania_path else "No configurada" }}</p>
       <div>
-        <a href="/configure_path" class="btn btn-primary me-2">Reconfigurar Ruta</a>
-        <a href="/configure_profile" class="btn btn-secondary">Reconectar Perfil</a>
+         <a href="/configure_path" class="btn btn-primary me-2">Reconfigurar Ruta</a>
+         <a href="/configure_profile" class="btn btn-secondary">Reconectar Perfil</a>
       </div>
     </div>
   </div>
