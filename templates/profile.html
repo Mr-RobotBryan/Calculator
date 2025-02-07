@@ -20,7 +20,7 @@
     </div>
   </nav>
   
-  <!-- Contenido principal -->
+  <!-- Contenedor principal -->
   <div class="container mt-5">
     <h2 class="mb-4 text-center">Mi Perfil</h2>
     
@@ -54,7 +54,6 @@
         <tbody>
           {% for score in scores %}
           <tr>
-            <!-- Se usa el filtro "basename" para extraer el nombre de la canción -->
             <td>{{ score.song_dir | basename }}</td>
             <td>{{ score.difficulty }}</td>
             <td>{{ score.steps_type }}</td>
