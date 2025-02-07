@@ -9,6 +9,13 @@ app.secret_key = 'tu_clave_secreta'  # Cambia esto por una clave segura
 db_name = "stepmania_stats.db"
 
 # ---------------------------
+# Registro de Filtros de Jinja2
+# ---------------------------
+@app.template_filter('basename')
+def basename_filter(path):
+    return os.path.basename(os.path.normpath(path))
+
+# ---------------------------
 # Funciones de Utilidad para Gamificación
 # ---------------------------
 def calculate_league(percent_dp):
@@ -42,7 +49,7 @@ def format_points(points):
     Formatea los puntos para mostrarlos:
       - En millones (M) si es >= 1,000,000.
       - En miles (K) si es >= 1,000.
-      - Sino, en número completo.
+      - Sino, el número completo.
     """
     if points >= 1_000_000:
         return f"{points/1_000_000:.2f}M"
@@ -62,7 +69,6 @@ def db_connection():
 def setup_database():
     conn = db_connection()
     cursor = conn.cursor()
-    # Tabla de usuarios: se almacena el username, password, api_key, stepmania_path y stepmania_profile
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,7 +79,6 @@ def setup_database():
         stepmania_profile TEXT
     )
     """)
-    # Tabla de scores: se registran las estadísticas de cada partida
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS scores (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -96,7 +101,7 @@ def setup_database():
 setup_database()
 
 # ---------------------------
-# Endpoint para Actualizar el DisplayName
+# Endpoint para Actualizar el DisplayName (Perfil de StepMania)
 # ---------------------------
 @app.route('/api/update_displayname', methods=['POST'])
 def update_displayname():
@@ -169,7 +174,7 @@ def api_submit_stats():
         player_guid = data["player_guid"]
         player_name = data["player_name"]
         # Evitar duplicados (simplificado)
-        cursor.execute("SELECT 1 FROM scores WHERE song_dir = ? AND difficulty = ? AND player_guid = ? AND score >= ?", 
+        cursor.execute("SELECT 1 FROM scores WHERE song_dir = ? AND difficulty = ? AND player_guid = ? AND score >= ?",
                        (song_dir, difficulty, player_guid, score))
         if cursor.fetchone():
             conn.close()
@@ -340,7 +345,7 @@ def profile():
     cursor.execute("SELECT stepmania_path, stepmania_profile FROM users WHERE username = ?", (session['username'],))
     user_config = cursor.fetchone()
     stepmania_path = user_config["stepmania_path"] if user_config and user_config["stepmania_path"] else ""
-    # Usamos directamente el valor almacenado en la base de datos para el perfil de StepMania.
+    # Usamos el valor de stepmania_profile almacenado (que se actualiza si el monitor detecta cambios en Editable.ini)
     profile_value = user_config["stepmania_profile"] if user_config and user_config["stepmania_profile"] else "No configurado"
     cursor.execute("SELECT SUM(score) AS total_points, AVG(percent_dp) AS avg_percent_dp FROM scores WHERE profile_id = ?", (profile_value,))
     row = cursor.fetchone()
