@@ -101,7 +101,7 @@ def setup_database():
 setup_database()
 
 # ---------------------------
-# Endpoint para Actualizar el DisplayName (solo decorativo)
+# Endpoint para Actualizar el DisplayName (decorativo)
 # ---------------------------
 @app.route('/api/update_displayname', methods=['POST'])
 def update_displayname():
@@ -112,7 +112,7 @@ def update_displayname():
         return jsonify({"status": "error", "message": "API key and displayname required"}), 400
     conn = db_connection()
     cursor = conn.cursor()
-    # Actualizamos el campo stepmania_profile (que es usado solo para mostrar, sin afectar los scores)
+    # Actualizamos el campo stepmania_profile con el nuevo DisplayName (uso decorativo)
     cursor.execute("UPDATE users SET stepmania_profile = ? WHERE api_key = ?", (new_displayname, api_key))
     conn.commit()
     conn.close()
@@ -345,16 +345,21 @@ def profile():
     cursor.execute("SELECT stepmania_path, stepmania_profile FROM users WHERE username = ?", (session['username'],))
     user_config = cursor.fetchone()
     stepmania_path = user_config["stepmania_path"] if user_config and user_config["stepmania_path"] else ""
-    # Obtenemos el valor almacenado (funcional) para filtrar los scores
+    # Se usa el valor almacenado para filtrar los scores (este es el identificador funcional)
     profile_value = user_config["stepmania_profile"] if user_config and user_config["stepmania_profile"] else "No configurado"
-    # Intentamos leer el DisplayName del Editable.ini para mostrarlo de forma decorativa
+    # Se intenta leer el DisplayName del Editable.ini para mostrarlo decorativamente
     editable_path = os.path.join(stepmania_path, profile_value, "Editable.ini")
-    displayname = profile_value  # Valor por defecto
+    displayname = "No definido"
     if os.path.exists(editable_path):
         config = configparser.ConfigParser()
         config.read(editable_path)
         if "Editable" in config and "DisplayName" in config["Editable"]:
             displayname = config["Editable"]["DisplayName"]
+        else:
+            print("La sección [Editable] o la clave DisplayName no existen en Editable.ini")
+    else:
+        print("Editable.ini no se encontró en:", editable_path)
+    
     cursor.execute("SELECT SUM(score) AS total_points, AVG(percent_dp) AS avg_percent_dp FROM scores WHERE profile_id = ?", (profile_value,))
     row = cursor.fetchone()
     total_points = row["total_points"] if row["total_points"] is not None else 0
