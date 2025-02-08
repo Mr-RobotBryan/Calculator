@@ -342,34 +342,27 @@ def profile():
         return redirect(url_for('login'))
     conn = db_connection()
     cursor = conn.cursor()
+    # Se obtiene la configuración del usuario
     cursor.execute("SELECT stepmania_path, stepmania_profile FROM users WHERE username = ?", (session['username'],))
     user_config = cursor.fetchone()
+    # Usamos directamente el valor almacenado en la base de datos para el perfil de StepMania.
+    # Se supone que el monitor actualiza este campo si el DisplayName cambia.
     stepmania_path = user_config["stepmania_path"] if user_config and user_config["stepmania_path"] else ""
-    # Se usa el valor almacenado para filtrar los scores (este es el identificador funcional)
-    profile_value = user_config["stepmania_profile"] if user_config and user_config["stepmania_profile"] else "No configurado"
-    # Se intenta leer el DisplayName del Editable.ini para mostrarlo decorativamente
-    editable_path = os.path.join(stepmania_path, profile_value, "Editable.ini")
-    displayname = "No definido"
-    if os.path.exists(editable_path):
-        config = configparser.ConfigParser()
-        config.read(editable_path)
-        if "Editable" in config and "DisplayName" in config["Editable"]:
-            displayname = config["Editable"]["DisplayName"]
-        else:
-            print("La sección [Editable] o la clave DisplayName no existen en Editable.ini")
-    else:
-        print("Editable.ini no se encontró en:", editable_path)
+    displayname = user_config["stepmania_profile"] if user_config and user_config["stepmania_profile"] else "No definido"
     
-    cursor.execute("SELECT SUM(score) AS total_points, AVG(percent_dp) AS avg_percent_dp FROM scores WHERE profile_id = ?", (profile_value,))
+    # Para consultar los scores, usamos el identificador que se registró (inicialmente "00000000", pero luego actualizado)
+    cursor.execute("SELECT SUM(score) AS total_points, AVG(percent_dp) AS avg_percent_dp FROM scores WHERE profile_id = ?", (displayname,))
     row = cursor.fetchone()
     total_points = row["total_points"] if row["total_points"] is not None else 0
     avg_percent_dp = row["avg_percent_dp"] if row["avg_percent_dp"] is not None else 0
+
     league = calculate_league(avg_percent_dp)
     level = calculate_level(total_points)
     formatted_points = format_points(total_points)
-    cursor.execute("SELECT * FROM scores WHERE profile_id = ?", (profile_value,))
+    cursor.execute("SELECT * FROM scores WHERE profile_id = ?", (displayname,))
     scores = cursor.fetchall()
     conn.close()
+    
     return render_template('profile.html',
                            username=session['username'],
                            displayname=displayname,
@@ -378,6 +371,7 @@ def profile():
                            formatted_points=formatted_points,
                            scores=scores,
                            stepmania_path=stepmania_path)
+
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
