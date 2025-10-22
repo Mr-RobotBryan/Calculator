@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Calculadora de precios | ZenithMedios</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --red:#e50914;
+  --black:#000;
+  --gray:#555;
+  --light:#fff;
+  --shadow:0 6px 20px rgba(0,0,0,0.08);
+}
+body {
+  font-family:'Poppins',sans-serif;
+  background:var(--light);
+  color:var(--black);
+  margin:0;
+  padding:0;
+}
+header {
+  background:var(--black);
+  color:var(--light);
+  text-align:center;
+  padding:20px 10px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.3);
+}
+header h1 {
+  font-size:32px;
+  color:var(--red);
+  margin:0;
+}
+header p {
+  color:#ccc;
+  margin:4px 0 0;
+  font-size:14px;
+}
+.wrap {
+  max-width:1100px;
+  margin:30px auto;
+  padding:0 18px;
+}
+.card {
+  background:var(--light);
+  border-radius:12px;
+  box-shadow:var(--shadow);
+  padding:20px;
+}
+h2 {
+  color:var(--red);
+  margin-top:0;
+  font-size:22px;
+}
+.tabs {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+}
+.tab {
+  padding:10px 14px;
+  border-radius:10px;
+  cursor:pointer;
+  background:#f5f5f5;
+  transition:all .2s;
+  font-weight:600;
+}
+.tab.active {
+  background:var(--red);
+  color:var(--light);
+}
+.grid {
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+}
+label {
+  display:block;
+  font-size:13px;
+  color:var(--gray);
+  margin-bottom:4px;
+}
+input[type=number],select {
+  width:100%;
+  padding:8px;
+  border-radius:8px;
+  border:1px solid #ddd;
+  background:#fff;
+}
+.section {
+  padding:12px;
+  border-radius:10px;
+  background:linear-gradient(180deg,#fff,#f9f9f9);
+  margin-bottom:12px;
+}
+.summary {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.total {
+  font-size:24px;
+  font-weight:700;
+  color:var(--red);
+}
+button {
+  background:var(--red);
+  color:#fff;
+  border:0;
+  padding:10px 18px;
+  border-radius:10px;
+  font-weight:600;
+  font-size:15px;
+  cursor:pointer;
+  box-shadow:0 3px 6px rgba(0,0,0,0.15);
+  transition:transform .1s;
+}
+button:hover { transform:scale(1.03); }
+button:active { transform:scale(0.97); }
+.breakdown div {
+  margin:4px 0;
+  font-size:14px;
+}
+footer {
+  text-align:center;
+  margin-top:18px;
+  font-size:12px;
+  color:var(--gray);
+}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <img src="logo-zenithmedios.png" alt="Logo ZenithMedios" style="height:60px;display:block;margin:0 auto 8px">
+  <h1>ZenithMedios</h1>
+  <p>Producción · Web · Marketing</p>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2>Calculadora de precios | ZenithMedios</h2>
+    <p style="color:#666;font-size:13px;">Selecciona los servicios requeridos. Usa la pestaña "Bundle" para aplicar descuento e IVA.</p>
+
+    <div class="tabs" role="tablist">
+      <div class="tab active" role="tab" aria-selected="true" data-tab="video">Video</div>
+      <div class="tab" role="tab" data-tab="web">Web</div>
+      <div class="tab" role="tab" data-tab="marketing">Marketing</div>
+      <div class="tab" role="tab" data-tab="bundle">Bundle / Resumen</div>
+    </div>
+
+    <!-- Panels -->
+    <div id="content">
+      <div class="panel" data-panel="video">
+        <div class="section grid">
+          <div class="full"><label><input type="checkbox" id="video_base"> Servicio base (grabación + edición) $130.000</label></div>
+          <div><label for="video_cameras">Cámaras extra</label><select id="video_cameras"><option value="0">No</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
+          <div><label for="video_drone">Dron</label><select id="video_drone"><option value="no">No</option><option value="si">Sí</option></select></div>
+          <div><label for="video_subs">Subtítulos</label><select id="video_subs"><option value="no">No</option><option value="si">Sí</option></select></div>
+          <div><label for="video_logo">Animación de logo</label><select id="video_logo"><option value="no">No</option><option value="si">Sí</option></select></div>
+          <div><label for="video_voice">Locución</label><select id="video_voice"><option value="no">No</option><option value="human">Humana</option><option value="ai">IA</option></select></div>
+        </div>
+        <div class="section">
+          <div class="summary">
+            <div class="total" id="videoTotal">$0</div>
+            <button id="calcVideo" type="button">Calcular Video</button>
+          </div>
+          <div class="breakdown" id="videoBreakdown" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div class="panel" data-panel="web" style="display:none">
+        <div class="section grid">
+          <div class="full"><label><input type="checkbox" id="web_enable"> Servicio Web base $450.000</label></div>
+          <div><label for="web_lang">Multi-idioma</label><select id="web_lang"><option value="no">No</option><option value="si">Sí</option></select></div>
+          <div><label for="web_urgent">Entrega urgente</label><select id="web_urgent"><option value="no">No</option><option value="si">Sí</option></select></div>
+          <div><label for="web_agenda">Agendamiento</label><select id="web_agenda"><option value="no">No</option><option value="si">Sí</option></select></div>
+          <div><label for="web_ecommerce">E-commerce</label><select id="web_ecommerce"><option value="no">No</option><option value="si">Sí</option></select></div>
+        </div>
+        <div class="section">
+          <div class="summary">
+            <div class="total" id="webTotal">$0</div>
+            <button id="calcWeb" type="button">Calcular Web</button>
+          </div>
+          <div class="breakdown" id="webBreakdown" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div class="panel" data-panel="marketing" style="display:none">
+        <div class="section grid">
+          <div><label><input type="checkbox" id="mkt_plan"> Plan mensual (2 reels + 1 post) $200.000</label></div>
+          <div><label><input type="checkbox" id="mkt_ads"> Gestión Facebook Ads +$30.000</label></div>
+          <div><label><input type="checkbox" id="mkt_design"> Diseño avanzado +$20.000</label></div>
+          <div><label><input type="checkbox" id="mkt_consult"> Asesoría $50.000</label></div>
+          <div><label for="mkt_months">Meses</label><input id="mkt_months" type="number" min="1" value="1"></div>
+        </div>
+        <div class="section">
+          <div class="summary">
+            <div class="total" id="mktTotal">$0</div>
+            <button id="calcMkt" type="button">Calcular Marketing</button>
+          </div>
+          <div class="breakdown" id="mktBreakdown" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div class="panel" data-panel="bundle" style="display:none">
+        <div class="section">
+          <div class="summary">
+            <div class="total" id="grandTotal">$0</div>
+            <button id="calcAll" type="button">Calcular Todo</button>
+          </div>
+          <div style="margin-top:10px;">
+            <label for="discountPercent">Descuento (%)</label>
+            <input id="discountPercent" type="number" min="0" max="100" value="0" style="width:80px;">
+          </div>
+          <div class="breakdown" id="breakdownArea" style="margin-top:10px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <footer>© 2025 ZenithMedios — Calculadora de precios</footer>
+  </div>
+</div>
+
+<script>
+// Helpers
+const fmt = v => Number(v||0).toLocaleString('es-CL');
+const toNum = v => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+
+// Tab logic
+const tabs = document.querySelectorAll('.tab');
+const panels = document.querySelectorAll('.panel');
+let lastActive = 'video';
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    tabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const panel = tab.dataset.tab;
+    panels.forEach(p => p.style.display = (p.dataset.panel === panel ? 'block' : 'none'));
+    lastActive = panel;
+  });
+});
+
+// Subtotal getters (pure -- only compute and return subtotal)
+function getVideoSubtotal() {
+  let subtotal = 0;
+  if (document.getElementById('video_base').checked) subtotal += 130000;
+  const cameras = toNum(document.getElementById('video_cameras').value);
+  subtotal += cameras * 50000;
+  if (document.getElementById('video_drone').value === 'si') subtotal += 70000;
+  if (document.getElementById('video_logo').value === 'si') subtotal += 25000;
+  const voice = document.getElementById('video_voice').value;
+  if (voice === 'human') subtotal += 100000;
+  else if (voice === 'ai') subtotal += 40000;
+  if (document.getElementById('video_subs').value === 'si') subtotal += 10000;
+  return subtotal;
+}
+
+function getWebSubtotal() {
+  let subtotal = 0;
+  if (document.getElementById('web_enable').checked) {
+    let base = 450000;
+    if (document.getElementById('web_lang').value === 'si') base = base * 2;
+    if (document.getElementById('web_urgent').value === 'si') base = Math.round(base * 1.3);
+    subtotal += base;
+  }
+  // Add-ons can be selected even if base not checked
+  if (document.getElementById('web_agenda').value === 'si') subtotal += 30000;
+  if (document.getElementById('web_ecommerce').value === 'si') subtotal += 50000;
+  return subtotal;
+}
+
+function getMktSubtotal() {
+  let subtotal = 0;
+  if (document.getElementById('mkt_plan').checked) {
+    const months = Math.max(1, toNum(document.getElementById('mkt_months').value));
+    const planValue = 200000;
+    subtotal += planValue * months;
+  }
+  if (document.getElementById('mkt_ads').checked) subtotal += 30000;
+  if (document.getElementById('mkt_design').checked) subtotal += 20000;
+  if (document.getElementById('mkt_consult').checked) subtotal += 50000;
+  return subtotal;
+}
+
+// UI calculators (use the getters and render breakdown for that tab)
+function calcVideoUI() {
+  const s = getVideoSubtotal();
+  const gan = s * 0.3;
+  const iva = (s + gan) * 0.19;
+  const total = s + gan + iva;
+  let html = '';
+  if (s === 0) html = '<div class="small">No hay servicios seleccionados en Video.</div>';
+  else {
+    if (document.getElementById('video_base').checked) html += `<div>Video base: $${fmt(130000)}</div>`;
+    const cams = toNum(document.getElementById('video_cameras').value);
+    if (cams>0) html += `<div>Cámaras extra (${cams}): $${fmt(cams*50000)}</div>`;
+    if (document.getElementById('video_drone').value === 'si') html += `<div>Dron: $${fmt(70000)}</div>`;
+    if (document.getElementById('video_logo').value === 'si') html += `<div>Animación de logo: $${fmt(25000)}</div>`;
+    const voice = document.getElementById('video_voice').value;
+    if (voice==='human') html += `<div>Locución humana: $${fmt(100000)}</div>`;
+    else if (voice==='ai') html += `<div>Locución IA: $${fmt(40000)}</div>`;
+    if (document.getElementById('video_subs').value === 'si') html += `<div>Subtítulos: $${fmt(10000)}</div>`;
+    html += `<div style="margin-top:6px">Subtotal servicios: $${fmt(s)}</div>`;
+    html += `<div>Ganancia 30%: $${fmt(gan)}</div>`;
+    html += `<div>IVA 19%: $${fmt(iva)}</div>`;
+    html += `<div style="font-weight:700">Total (con ganancia + IVA): $${fmt(total)}</div>`;
+  }
+  document.getElementById('videoBreakdown').innerHTML = html;
+  document.getElementById('videoTotal').innerText = '$' + fmt(total);
+  return s;
+}
+
+function calcWebUI() {
+  const s = getWebSubtotal();
+  const gan = s * 0.3;
+  const iva = (s + gan) * 0.19;
+  const total = s + gan + iva;
+  let html = '';
+  if (s === 0) html = '<div class="small">No hay servicios seleccionados en Web.</div>';
+  else {
+    if (document.getElementById('web_enable').checked) {
+      let base = 450000;
+      if (document.getElementById('web_lang').value==='si') html += `<div>Multi-idioma (duplica base)</div>`;
+      if (document.getElementById('web_urgent').value==='si') html += `<div>Entrega urgente 1 mes: +30%</div>`;
+      // show computed base
+      if (document.getElementById('web_enable').checked) {
+        let baseShow = 450000;
+        if (document.getElementById('web_lang').value === 'si') baseShow = baseShow * 2;
+        if (document.getElementById('web_urgent').value === 'si') baseShow = Math.round(baseShow * 1.3);
+        html += `<div>Web base: $${fmt(baseShow)}</div>`;
+      }
+    }
+    if (document.getElementById('web_agenda').value === 'si') html += `<div>Agendamiento: $${fmt(30000)}</div>`;
+    if (document.getElementById('web_ecommerce').value === 'si') html += `<div>E-commerce: $${fmt(50000)}</div>`;
+    html += `<div style="margin-top:6px">Subtotal servicios: $${fmt(s)}</div>`;
+    html += `<div>Ganancia 30%: $${fmt(gan)}</div>`;
+    html += `<div>IVA 19%: $${fmt(iva)}</div>`;
+    html += `<div style="font-weight:700">Total (con ganancia + IVA): $${fmt(total)}</div>`;
+  }
+  document.getElementById('webBreakdown').innerHTML = html;
+  document.getElementById('webTotal').innerText = '$' + fmt(total);
+  return s;
+}
+
+function calcMktUI() {
+  const s = getMktSubtotal();
+  const gan = s * 0.3;
+  const iva = (s + gan) * 0.19;
+  const total = s + gan + iva;
+  let html = '';
+  if (s === 0) html = '<div class="small">No hay servicios seleccionados en Marketing.</div>';
+  else {
+    if (document.getElementById('mkt_plan').checked) {
+      const months = Math.max(1, toNum(document.getElementById('mkt_months').value));
+      html += `<div>Plan mensual (${months} mes${months>1?'es':''}): $${fmt(200000*months)}</div>`;
+    }
+    if (document.getElementById('mkt_ads').checked) html += `<div>Gestión Facebook Ads: $${fmt(30000)}</div>`;
+    if (document.getElementById('mkt_design').checked) html += `<div>Diseño avanzado: $${fmt(20000)}</div>`;
+    if (document.getElementById('mkt_consult').checked) html += `<div>Asesoría: $${fmt(50000)}</div>`;
+    html += `<div style="margin-top:6px">Subtotal servicios: $${fmt(s)}</div>`;
+    html += `<div>Ganancia 30%: $${fmt(gan)}</div>`;
+    html += `<div>IVA 19%: $${fmt(iva)}</div>`;
+    html += `<div style="font-weight:700">Total (con ganancia + IVA): $${fmt(total)}</div>`;
+  }
+  document.getElementById('mktBreakdown').innerHTML = html;
+  document.getElementById('mktTotal').innerText = '$' + fmt(total);
+  return s;
+}
+
+// Bundle total uses pure getters to avoid double counting and side effects
+function calcBundle() {
+  const vSub = getVideoSubtotal();
+  const wSub = getWebSubtotal();
+  const mSub = getMktSubtotal();
+  const subtotal = vSub + wSub + mSub;
+
+  const gan = subtotal * 0.3;
+  const discountPercent = Math.max(0, Math.min(100, toNum(document.getElementById('discountPercent').value)));
+  const beforeDiscount = subtotal + gan;
+  const discount = beforeDiscount * (discountPercent / 100);
+  const taxable = beforeDiscount - discount;
+  const iva = taxable * 0.19;
+  const total = taxable + iva;
+
+  let html = '';
+  html += `<div>Subtotal servicios: $${fmt(subtotal)}</div>`;
+  html += `<div>Ganancia 30%: $${fmt(gan)}</div>`;
+  html += `<div>Descuento ${discountPercent}%: -$${fmt(discount)}</div>`;
+  html += `<div>Base imponible (después de descuento): $${fmt(taxable)}</div>`;
+  html += `<div>IVA 19%: $${fmt(iva)}</div>`;
+  html += `<div style="font-weight:700;margin-top:6px">Total final: $${fmt(total)}</div>`;
+
+  document.getElementById('breakdownArea').innerHTML = html;
+  document.getElementById('grandTotal').innerText = '$' + fmt(total);
+  return { subtotal, gan, discount, iva, total };
+}
+
+// Wire buttons & inputs
+document.getElementById('calcVideo').addEventListener('click', calcVideoUI);
+document.getElementById('calcWeb').addEventListener('click', calcWebUI);
+document.getElementById('calcMkt').addEventListener('click', calcMktUI);
+document.getElementById('calcAll').addEventListener('click', calcBundle);
+
+// Live update when inputs change (update only active tab)
+const watched = [
+  'video_base','video_cameras','video_drone','video_logo','video_voice','video_subs',
+  'web_enable','web_lang','web_urgent','web_agenda','web_ecommerce',
+  'mkt_plan','mkt_months','mkt_ads','mkt_design','mkt_consult','discountPercent'
+];
+watched.forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('change', () => {
+    if (lastActive === 'video') calcVideoUI();
+    else if (lastActive === 'web') calcWebUI();
+    else if (lastActive === 'marketing') calcMktUI();
+    else if (lastActive === 'bundle') calcBundle();
+  });
+});
+
+// Initialize displays
+calcVideoUI();
+calcWebUI();
+calcMktUI();
+</script>
+</body>
+</html>
